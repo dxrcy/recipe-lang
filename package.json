@@ -1,0 +1,14 @@
+{
+  "name": "recipe-lang",
+  "version": "0.1.0",
+  "description": "Recipe programming language",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon"
+  },
+  "author": "darcy",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.16"
+  }
+}
