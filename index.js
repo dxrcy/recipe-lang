@@ -37,220 +37,227 @@ function error(type, msg) {
 function followRecipe() {
     var repeats = 0;
     for (var i = 0; i < recipe.method.length; i++) {
-        //TODO Secondary try/catch for line number
-        var step = splitAtSpace(recipe.method[i]), cmd = step[0].toLowerCase();
-        // Preheat
-        if (i === 0 && cmd !== "preheat") {
-            throw "You forgot to preheat the oven!";
-        }
-        if (i > 0 && cmd === "preheat") {
-            throw "You must preheat the oven on the first step only!";
-        }
-        // Remove condition from args
-        //TODO 'until'
-        var condition = null, args = [];
-        for (var j = 1; j < step.length; j++) {
-            if (step[j].toLowerCase() === "if") {
-                condition = [];
+        var step = splitAtSpace(recipe.method[i]);
+        // Secondary try/catch for line number
+        try {
+            var cmd = step[1].toLowerCase();
+            // Preheat
+            if (i === 0 && cmd !== "preheat") {
+                throw "You forgot to preheat the oven!";
+            }
+            if (i > 0 && cmd === "preheat") {
+                throw "You must preheat the oven on the first step only!";
+            }
+            // Remove condition from args
+            //TODO 'until'
+            var condition = null, args = [];
+            for (var j = 2; j < step.length; j++) {
+                if (step[j].toLowerCase() === "if") {
+                    condition = [];
+                    continue;
+                }
+                if (condition) {
+                    condition.push(step[j]);
+                    continue;
+                }
+                args.push(step[j]);
+            }
+            // Check condition
+            if (condition && !checkCondition(condition)) {
                 continue;
             }
-            if (condition) {
-                condition.push(step[j]);
-                continue;
-            }
-            args.push(step[j]);
-        }
-        // Check condition
-        if (condition && !checkCondition(condition)) {
-            continue;
-        }
-        switch (cmd) {
-            // Ignore
-            case "preheat":
-            case "dont":
-            case "don't":
-                break;
-            // Print value
-            case "shout":
-                shoutArgs(args);
-                break;
-            // Add, append, or concat value
-            case "add":
-                var from = args[0], select = "contents", rest = 1;
-                if (args[1]?.toLowerCase() === "of") {
-                    from = args[2];
-                    select = args[0].toLowerCase();
-                    rest += 2;
-                }
-                var to = args[rest + 1];
-                if (args[rest]?.toLowerCase() !== "to") {
-                    throw "Cannot add to nothing";
-                }
-                switch (select) {
-                    // Read file
-                    case "file":
-                        //TODO Error handling
-                        if (!recipe.utensils.includes("fs")) {
-                            throw "'File reader' utensil was not specified!";
-                        }
-                        addValue(to, fs
-                            .readFileSync(path.join(file, "../", parseValue(from)))
-                            .toString());
-                        break;
-                    // Whole value
-                    case "contents":
-                        addValue(to, parseValue(from));
-                        if (isValidIngredient(from)) {
-                            recipe.ingredients[from] = null;
-                        }
-                        break;
-                    // Random item / number
-                    case "any":
-                        var value = parseValue(from);
-                        if (value === null || value === undefined) {
-                            throw "Cannot get 'any' of null";
-                        }
-                        if (typeof value === "number") {
-                            // Random number
-                            var number = F.randomInt(0, value);
-                            addValue(to, number);
-                            if (isValidIngredient(from)) {
-                                recipe.ingredients[from] -= number;
-                            }
-                        }
-                        else {
-                            // Random item
-                            var number = F.randomInt(0, value.length);
-                            addValue(to, value[number] || "");
-                            if (isValidIngredient(from)) {
-                                if (typeof value === "string") {
-                                    recipe.ingredients[from] =
-                                        value.slice(0, number) + value.slice(number + 1);
-                                }
-                                else {
-                                    recipe.ingredients[from] = [
-                                        ...value.slice(0, number),
-                                        ...value.slice(number + 1),
-                                    ];
-                                }
-                            }
-                        }
-                        break;
-                    // First item
-                    case "first":
-                        var value = parseValue(from);
-                        if (value === null || value === undefined) {
-                            throw "Cannot get 'first' of null";
-                        }
-                        if (typeof value === "number") {
-                            throw "Cannot get 'first' of number";
-                        }
-                        addValue(to, value[0] || "");
-                        if (isValidIngredient(from)) {
-                            recipe.ingredients[from] = value.slice(1);
-                        }
-                        break;
-                    // Last item
-                    case "last":
-                        var value = parseValue(from);
-                        if (value === null || value === undefined) {
-                            throw "Cannot get 'last' of null";
-                        }
-                        if (typeof value === "number") {
-                            throw "Cannot get 'last' of number";
-                        }
-                        addValue(to, value.slice(-1)[0] || "");
-                        if (isValidIngredient(from)) {
-                            recipe.ingredients[from] = value.slice(0, -1);
-                        }
-                        break;
-                    default:
-                        throw `Unknown selector <${select}>`;
-                }
-                break;
-            // Clone ingredient without deleting original
-            case "remake":
-                var from = args[0], as = args[2];
-                if (args[1]?.toLowerCase() !== "as") {
-                    throw "Cannot remake as nothing";
-                }
-                if (!isValidIngredient(as)) {
-                    throw `Undefined ingredient <${as}>`;
-                }
-                recipe.ingredients[as] = parseValue(from);
-                break;
-            // Split ingredient to list
-            case "separate":
-                var value = parseValue(args[0]), char = parseValue(args[2]);
-                if (args[1]?.toLowerCase() !== "by") {
-                    throw "Separation method not given";
-                }
-                if (!(typeof value === "string" || typeof value === "number")) {
-                    throw `Cannot separate type <${typeof value}>`;
-                }
-                recipe.ingredients[args[0]] = value.toString().split(char);
-                break;
-            // Delete ingredient, set to null
-            case "empty":
-                if (!isValidIngredient(args[0])) {
-                    throw `Undefined ingredient <${args[0]}>`;
-                }
-                recipe.ingredients[args[0]] = null;
-                break;
-            // Move to line (previous)
-            case "repeat":
-                if (args.slice(0, 2).join(" ") !== "from step") {
-                    throw "Unknown format for 'repeat'";
-                }
-                if (isNaN(parseInt(args[2]))) {
-                    throw "Step is not a number";
-                }
-                //! Higher amount
-                if (repeats >= 20) {
-                    throw "Too many repeats!";
-                }
-                i = parseInt(args[2]) - 1;
-                repeats++;
-                break;
-            // Final shout and exit
-            case "serve":
-                if (args.length > 0) {
-                    process.stdout.write("\x1b[3m");
-                    if (args[0]?.toLowerCase() === "and") {
-                        // Assume all is one string
-                        shoutArgs(["'" + args.slice(1).join(" ") + "'"]);
-                    }
-                    else {
-                        // Assume type defined
-                        shoutArgs(args);
-                    }
-                    process.stdout.write("\x1b[0m\n");
-                }
-                process.exit();
-            case "take":
-                var take = args[0], rest = 1;
-                //TODO parseValue for a if not 'of size'
-                if (args[1]?.toLowerCase() === "of") {
-                    if (args[0]?.toLowerCase() === "size") {
-                        take = getSize(condition[2]);
+            switch (cmd) {
+                // Ignore
+                case "preheat":
+                case "dont":
+                case "don't":
+                    break;
+                // Print value
+                case "shout":
+                    shoutArgs(args);
+                    break;
+                // Add, append, or concat value
+                case "add":
+                    var from = args[0], select = "contents", rest = 1;
+                    if (args[1]?.toLowerCase() === "of") {
+                        from = args[2];
+                        select = args[0].toLowerCase();
                         rest += 2;
                     }
-                }
-                if (args[rest]?.toLowerCase() !== "from") {
-                    throw "Cannot take from nothing";
-                }
-                var from = args[rest + 1];
-                if (!isValidIngredient(from)) {
-                    throw `Undefined ingredient <${from}>`;
-                }
-                var value = parseValue(from);
-                if (typeof value !== "number") {
-                    throw "Ingredient is not a number";
-                }
-                recipe.ingredients[from] -= take;
-                break;
-            default:
-                throw `Unknown command <${step[0]}>`;
+                    var to = args[rest + 1];
+                    if (args[rest]?.toLowerCase() !== "to") {
+                        throw "Cannot add to nothing";
+                    }
+                    switch (select) {
+                        // Read file
+                        case "file":
+                            //TODO Error handling
+                            if (!recipe.utensils.includes("fs")) {
+                                throw "'File reader' utensil was not specified!";
+                            }
+                            addValue(to, fs
+                                .readFileSync(path.join(file, "../", parseValue(from)))
+                                .toString());
+                            break;
+                        // Whole value
+                        case "contents":
+                            addValue(to, parseValue(from));
+                            if (isValidIngredient(from)) {
+                                recipe.ingredients[from] = null;
+                            }
+                            break;
+                        // Random item / number
+                        case "any":
+                            var value = parseValue(from);
+                            if (value === null || value === undefined) {
+                                throw "Cannot get 'any' of null";
+                            }
+                            if (typeof value === "number") {
+                                // Random number
+                                var number = F.randomInt(0, value);
+                                addValue(to, number);
+                                if (isValidIngredient(from)) {
+                                    recipe.ingredients[from] -= number;
+                                }
+                            }
+                            else {
+                                // Random item
+                                var number = F.randomInt(0, value.length);
+                                addValue(to, value[number] || "");
+                                if (isValidIngredient(from)) {
+                                    if (typeof value === "string") {
+                                        recipe.ingredients[from] =
+                                            value.slice(0, number) + value.slice(number + 1);
+                                    }
+                                    else {
+                                        recipe.ingredients[from] = [
+                                            ...value.slice(0, number),
+                                            ...value.slice(number + 1),
+                                        ];
+                                    }
+                                }
+                            }
+                            break;
+                        // First item
+                        case "first":
+                            var value = parseValue(from);
+                            if (value === null || value === undefined) {
+                                throw "Cannot get 'first' of null";
+                            }
+                            if (typeof value === "number") {
+                                throw "Cannot get 'first' of number";
+                            }
+                            addValue(to, value[0] || "");
+                            if (isValidIngredient(from)) {
+                                recipe.ingredients[from] = value.slice(1);
+                            }
+                            break;
+                        // Last item
+                        case "last":
+                            var value = parseValue(from);
+                            if (value === null || value === undefined) {
+                                throw "Cannot get 'last' of null";
+                            }
+                            if (typeof value === "number") {
+                                throw "Cannot get 'last' of number";
+                            }
+                            addValue(to, value.slice(-1)[0] || "");
+                            if (isValidIngredient(from)) {
+                                recipe.ingredients[from] = value.slice(0, -1);
+                            }
+                            break;
+                        default:
+                            throw `Unknown selector <${select}>`;
+                    }
+                    break;
+                // Clone ingredient without deleting original
+                case "remake":
+                    var from = args[0], as = args[2];
+                    if (args[1]?.toLowerCase() !== "as") {
+                        throw "Cannot remake as nothing";
+                    }
+                    if (!isValidIngredient(as)) {
+                        throw `Undefined ingredient <${as}>`;
+                    }
+                    recipe.ingredients[as] = parseValue(from);
+                    break;
+                // Split ingredient to list
+                case "separate":
+                    var value = parseValue(args[0]), char = parseValue(args[2]);
+                    if (args[1]?.toLowerCase() !== "by") {
+                        throw "Separation method not given";
+                    }
+                    if (!(typeof value === "string" || typeof value === "number")) {
+                        throw `Cannot separate type <${typeof value}>`;
+                    }
+                    recipe.ingredients[args[0]] = value.toString().split(char);
+                    break;
+                // Delete ingredient, set to null
+                case "empty":
+                    if (!isValidIngredient(args[0])) {
+                        throw `Undefined ingredient <${args[0]}>`;
+                    }
+                    recipe.ingredients[args[0]] = null;
+                    break;
+                // Move to line (previous)
+                case "repeat":
+                    if (args.slice(0, 2).join(" ") !== "from step") {
+                        throw "Unknown format for 'repeat'";
+                    }
+                    if (isNaN(parseInt(args[2]))) {
+                        throw "Step is not a number";
+                    }
+                    //! Higher amount
+                    if (repeats >= 20) {
+                        throw "Too many repeats!";
+                    }
+                    i = parseInt(args[2]) - 1;
+                    repeats++;
+                    break;
+                // Final shout and exit
+                case "serve":
+                    if (args.length > 0) {
+                        process.stdout.write("\x1b[3m");
+                        if (args[0]?.toLowerCase() === "and") {
+                            // Assume all is one string
+                            shoutArgs(["'" + args.slice(1).join(" ") + "'"]);
+                        }
+                        else {
+                            // Assume type defined
+                            shoutArgs(args);
+                        }
+                        console.log("\x1b[0m\n");
+                    }
+                    console.log();
+                    process.exit();
+                case "take":
+                    var take = args[0], rest = 1;
+                    //? This might be broken
+                    // if (args[1]?.toLowerCase() === "of") {
+                    //   if (args[0]?.toLowerCase() === "size") {
+                    //     take = getSize(condition[2]);
+                    //     rest += 2;
+                    //   }
+                    // }
+                    if (args[rest]?.toLowerCase() !== "from") {
+                        throw "Cannot take from nothing";
+                    }
+                    var from = args[rest + 1];
+                    if (!isValidIngredient(from)) {
+                        throw `Undefined ingredient <${from}>`;
+                    }
+                    var value = parseValue(from);
+                    if (typeof value !== "number") {
+                        throw "Ingredient is not a number";
+                    }
+                    recipe.ingredients[from] -= take;
+                    break;
+                default:
+                    throw `Unknown command <${step[1]}>`;
+            }
+        }
+        catch (err) {
+            throw `${err} (Step ${step[0]})`;
         }
     }
 }
@@ -323,14 +330,13 @@ function checkCondition(full) {
 // Check single condition of line
 function checkSingleCondition(condition) {
     var a = condition[0], b = condition.slice(-1)[0], inverse = false, rest = 1;
-    //TODO Move to function
-    // 'of'
-    if (condition[rest]?.toLowerCase() === "of") {
-        if (a?.toLowerCase() === "size") {
-            a = getSize(condition[rest + 1]);
-            rest += 2;
-        }
-    }
+    //? This might be broken
+    // if (condition[rest]?.toLowerCase() === "of") {
+    //   if (a?.toLowerCase() === "size") {
+    //     a = getSize(condition[rest + 1]);
+    //     rest += 2;
+    //   }
+    // }
     // 'is' type
     if (condition[rest]?.toLowerCase() === "is") {
         rest++;
@@ -369,14 +375,12 @@ function checkSingleCondition(condition) {
             method = "in";
             rest += 1;
         }
-        // 'of'
-        if (condition[rest + 1]?.toLowerCase() === "of") {
-            if (condition[rest]?.toLowerCase() === "size") {
-                b = getSize(condition[rest + 2]);
-            }
-        }
-        // console.log(recipe.ingredients);
-        // console.log(condition, a, b, method);
+        //? This might be broken
+        // if (condition[rest + 1]?.toLowerCase() === "of") {
+        //   if (condition[rest]?.toLowerCase() === "size") {
+        //     b = getSize(condition[rest + 2]);
+        //   }
+        // }
         if (method) {
             switch (method) {
                 case "==":
@@ -499,7 +503,19 @@ function splitAtSpace(string) {
     if (build) {
         array.push(build);
     }
-    return array;
+    //TODO parseValue for a if not 'of size'
+    var proper = [];
+    for (var i = 0; i < array.length; i++) {
+        if (array[i]?.toLowerCase() === "size") {
+            if (array[i + 1]?.toLowerCase() === "of") {
+                proper.push(getSize(array[i + 2]).toString());
+                i += 2;
+                continue;
+            }
+        }
+        proper.push(array[i]);
+    }
+    return proper;
 }
 // Split string at comma or 'and' without breaking quotes
 function splitAtArgs(string) {
@@ -600,7 +616,7 @@ function parseRecipe(file) {
                     }
                     stepNumber--;
                 }
-                var step = removePadding(line.split(".").slice(1).join("."));
+                var step = removePadding(line.split(".")[0] + " " + line.split(".").slice(1).join("."));
                 if (!step.endsWith(".")) {
                     throw `Missing '.' after step (line ${i + 1})`;
                 }
