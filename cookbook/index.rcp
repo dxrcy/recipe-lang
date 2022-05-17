@@ -25,7 +25,7 @@ Method
 7. Empty incorrect.
 
 0. Add 'an' to correct.
-0. Shout word.
+0. Shout word and wait.
 
 8. Empty show.
 9. Remake word as flour.
@@ -36,7 +36,6 @@ Method
 14. Repeat from step 10 if size of show is less than size of word.
 
 15. Shout 'Win!' and wait if show is the same as word.
-0. Don't serve word, ' ' and show.
 
 16. Empty flour.
 17. Add 6 to flour.

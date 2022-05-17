@@ -1,10 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const F = require("fortissimo");
+const readline = require("readline");
 //TODO File path
 const file = path.join(__dirname, "cookbook/index.rcp");
+//TODO Standardize error messages
 var recipe;
-function main() {
+async function main() {
     try {
         recipe = parseRecipe(fs.readFileSync(file).toString());
     }
@@ -13,7 +15,7 @@ function main() {
     }
     console.log(`\x1b[3mPreparing '${recipe.title}'...\x1b[0m`);
     try {
-        followRecipe();
+        await followRecipe();
     }
     catch (err) {
         error("RUNTIME ERROR", err);
@@ -34,7 +36,7 @@ function error(type, msg) {
     process.exit();
 }
 // Run method
-function followRecipe() {
+async function followRecipe() {
     var repeats = 0;
     for (var i = 0; i < recipe.method.length; i++) {
         var step = splitAtSpace(recipe.method[i]);
@@ -49,7 +51,6 @@ function followRecipe() {
                 throw "You must preheat the oven on the first step only!";
             }
             // Remove condition from args
-            //TODO 'until'
             var condition = null, args = [];
             for (var j = 2; j < step.length; j++) {
                 if (step[j].toLowerCase() === "if") {
@@ -211,7 +212,25 @@ function followRecipe() {
                     if (repeats >= 20) {
                         throw "Too many repeats!";
                     }
-                    i = parseInt(args[2]) - 1;
+                    var number = parseInt(args[2]);
+                    if (typeof number !== "number") {
+                        throw "Step must be number";
+                    }
+                    if (number >= parseInt(step[0])) {
+                        throw "Cannot repeat from future step (Use 'skip')";
+                    }
+                    var index = null;
+                    for (var j = 0; j < recipe.method.length; j++) {
+                        if (parseInt(recipe.method[j]) === number) {
+                            index = j;
+                            break;
+                        }
+                    }
+                    if (index === null) {
+                        throw `Cannot find step <${number}>`;
+                    }
+                    console.log(recipe.method[index - 1]);
+                    i = index - 1;
                     repeats++;
                     break;
                 // Final shout and exit
@@ -252,6 +271,44 @@ function followRecipe() {
                     }
                     recipe.ingredients[from] -= take;
                     break;
+                case "bake":
+                    if (args[0]?.toLowerCase() === "for") {
+                        // Sleep
+                        var time = parseFloat(args[1]) * 1000;
+                        if (isNaN(time)) {
+                            throw "Time is not a number";
+                        }
+                        switch (args[2]?.toLowerCase()) {
+                            case "second":
+                            case "seconds":
+                                break;
+                            case "minute":
+                            case "minutes":
+                                time *= 60;
+                                break;
+                            case "hour":
+                            case "hours":
+                                time *= 60 * 60;
+                                break;
+                            default:
+                                throw `Unknown time unit <${args[2]}>`;
+                        }
+                        await F.sleep(time);
+                    }
+                    else if (args[0]?.toLowerCase() === "until") {
+                        // Input
+                        var answer = await getInput(parseValue(args[1]));
+                        if (args[2]?.toLowerCase() === "is") {
+                            if (!isValidIngredient(args[3])) {
+                                throw `Undefined ingredient <${args[3]}>`;
+                            }
+                            recipe.ingredients[args[3]] = answer;
+                        }
+                    }
+                    else {
+                        throw "What time to bake for?";
+                    }
+                    break;
                 default:
                     throw `Unknown command <${step[1]}>`;
             }
@@ -260,6 +317,19 @@ function followRecipe() {
             throw `${err} (Step ${step[0]})`;
         }
     }
+}
+// Wait for user input
+function getInput(prompt) {
+    return new Promise(resolve => {
+        if (prompt === null || prompt === undefined) {
+            prompt = "";
+        }
+        var rl = readline.createInterface(process.stdin, process.stdout);
+        rl.question(prompt, answer => {
+            rl.close();
+            resolve(answer);
+        });
+    });
 }
 // Shout all arguments
 function shoutArgs(args) {
@@ -485,7 +555,7 @@ function splitAtSpace(string) {
     var array = [], build = "", isQuote = false;
     for (var i = 0; i < string.length; i++) {
         if (string[i] === "'") {
-            if (isQuote || "., ".includes(build.slice(-1)[0])) {
+            if (isQuote || !build || "., ".includes(build.slice(-1)[0])) {
                 isQuote = !isQuote;
             }
         }
