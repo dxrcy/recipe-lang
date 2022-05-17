@@ -10,10 +10,7 @@
     "ignore": [
       "temp/"
     ],
-    "watch": [
-      "index.rcp",
-      "index.js"
-    ]
+    "ext": "js, rcp"
   },
   "author": "darcy",
   "license": "MIT",

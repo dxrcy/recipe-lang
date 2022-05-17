@@ -21,20 +21,21 @@ function main(): void {
   }
 
   console.log(`\x1b[3mPreparing '${recipe.title}'...\x1b[0m`);
-  //* debug
-  fs.writeFileSync(
-    path.join(__dirname, "temp/output.json"),
-    JSON.stringify(recipe, null, 2),
-  );
-
   try {
     followRecipe();
   } catch (err) {
     error("RUNTIME ERROR", err);
   }
 
+  // Check for any unused ingredients, utensils
+  //TODO Check for unused utensils
+  for (var i in recipe.ingredients) {
+    if (recipe.ingredients[i] === undefined) {
+      throw `Unused ingredient <${i}>`;
+    }
+  }
+
   console.log();
-  //TODO Check for any unused ingredients, utensils
 }
 main();
 
@@ -135,7 +136,7 @@ function followRecipe(): void {
           // Random item / number
           case "any":
             var value = parseValue(from);
-            if (value === null) {
+            if (value === null || value === undefined) {
               throw "Cannot get 'any' of null";
             }
             if (typeof value === "number") {
@@ -166,7 +167,7 @@ function followRecipe(): void {
           // First item
           case "first":
             var value = parseValue(from);
-            if (value === null) {
+            if (value === null || value === undefined) {
               throw "Cannot get 'first' of null";
             }
             if (typeof value === "number") {
@@ -181,7 +182,7 @@ function followRecipe(): void {
           // Last item
           case "last":
             var value = parseValue(from);
-            if (value === null) {
+            if (value === null || value === undefined) {
               throw "Cannot get 'last' of null";
             }
             if (typeof value === "number") {
@@ -313,12 +314,12 @@ function addValue(name: string, value: any): void {
   if (!isValidIngredient(name)) {
     throw `Undefined ingredient <${name}>`;
   }
-  if (value === null) {
+  if (value === null || value === undefined) {
     return;
   }
 
   var original = parseValue(name);
-  if (original === null) {
+  if (original === null || original === undefined) {
     recipe.ingredients[name] = value;
     return;
   }
@@ -736,7 +737,7 @@ function parseRecipe(file: string): recipe {
   for (var i = 0; i < recipe.ingredients.length; i++) {
     var item = recipe.ingredients[i].split(" ");
     if (item.length === 1) {
-      ingredients[item[0]] = null;
+      ingredients[item[0]] = undefined;
       continue;
     }
     if (item.length === 3 && item[1] === "of") {

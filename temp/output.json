@@ -4,16 +4,7 @@
     "fs",
     "io"
   ],
-  "ingredients": {
-    "list": null,
-    "word": null,
-    "correct": null,
-    "incorrect": null,
-    "show": null,
-    "flour": null,
-    "sugar": null,
-    "guess": null
-  },
+  "ingredients": {},
   "method": [
     "Preheat",
     "Add file of 'words.txt' to list",
@@ -34,6 +25,7 @@
     "Don't serve word, ' ' and show",
     "Empty flour",
     "Add 6 to flour",
+    "Serve",
     "Shout size of incorrect",
     "Take size of incorrect from flour",
     "Shout wait, show, wait, 'Chances: ', flour, wait, 'Correct: ', correct, wait, 'Incorrect: ', incorrect, and wait",
