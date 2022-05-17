@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   //TODO Check for unused utensils
   for (var i in recipe.ingredients) {
     if (recipe.ingredients[i] === undefined) {
-      throw `Unused ingredient <${i}>`;
+      error("VALIDATION ERROR", `Unused ingredient <${i}>`);
     }
   }
 
@@ -236,7 +236,7 @@ async function followRecipe(): Promise<void> {
           recipe.ingredients[args[0]] = null;
           break;
 
-        // Move to line (previous)
+        // Move to line (past)
         case "repeat":
           if (args.slice(0, 2).join(" ") !== "from step") {
             throw "Unknown format for 'repeat'";
@@ -244,15 +244,15 @@ async function followRecipe(): Promise<void> {
           if (isNaN(parseInt(args[2]))) {
             throw "Step is not a number";
           }
-          //! Higher amount
-          if (repeats >= 20) {
-            throw "Too many repeats!";
+          //? Higher amount
+          if (repeats >= 1e6) {
+            throw "Too many repeats! [DEBUG]";
           }
           var number = parseInt(args[2]);
           if (typeof number !== "number") {
             throw "Step must be number";
           }
-          if (number >= parseInt(step[0])) {
+          if (!(step[0] === "0") && number >= parseInt(step[0])) {
             throw "Cannot repeat from future step (Use 'skip')";
           }
           var index = null;
@@ -265,10 +265,36 @@ async function followRecipe(): Promise<void> {
           if (index === null) {
             throw `Cannot find step <${number}>`;
           }
-          console.log(recipe.method[index - 1]);
           i = index - 1;
           repeats++;
+          break;
 
+        // Move to line (future)
+        case "skip":
+          if (args.slice(0, 2).join(" ") !== "to step") {
+            throw "Unknown format for 'skip'";
+          }
+          if (isNaN(parseInt(args[2]))) {
+            throw "Step is not a number";
+          }
+          var number = parseInt(args[2]);
+          if (typeof number !== "number") {
+            throw "Step must be number";
+          }
+          if (!(step[0] === "0") && number <= parseInt(step[0])) {
+            throw "Cannot repeat from past step (Use 'repeat')";
+          }
+          var index = null;
+          for (var j = 0; j < recipe.method.length; j++) {
+            if (parseInt(recipe.method[j]) === number) {
+              index = j;
+              break;
+            }
+          }
+          if (index === null) {
+            throw `Cannot find step <${number}>`;
+          }
+          i = index - 1;
           break;
 
         // Final shout and exit
@@ -363,7 +389,10 @@ function getInput(prompt) {
     if (prompt === null || prompt === undefined) {
       prompt = "";
     }
-    var rl = readline.createInterface(process.stdin, process.stdout);
+    var rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     rl.question(prompt, answer => {
       rl.close();
       resolve(answer);
@@ -523,10 +552,11 @@ function checkSingleCondition(condition: string[]): boolean {
         case ">":
           return parseValue(a) > parseValue(b) !== inverse;
         case "in":
-          return (
-            (!parseValue(b) || parseValue(b)?.includes(parseValue(a))) !==
-            inverse
-          );
+          var value = parseValue(b);
+          if (value === null || value === undefined) {
+            return inverse;
+          }
+          return value?.includes?.(parseValue(a)) !== inverse;
       }
     }
   }
@@ -785,6 +815,7 @@ function parseRecipe(file: string): recipe {
         var step = removePadding(
           line.split(".")[0] + " " + line.split(".").slice(1).join("."),
         );
+        //TODO Allow '!' or '?' at end
         if (!step.endsWith(".")) {
           throw `Missing '.' after step (line ${i + 1})`;
         }
