@@ -1,14 +1,17 @@
 const fs = require("fs");
 const path = require("path");
 const F = require("fortissimo");
+//TODO File path
+const file = path.join(__dirname, "cookbook/index.rcp");
 var recipe;
 function main() {
     try {
-        recipe = parseRecipe(fs.readFileSync(path.join(__dirname, "index.rcp")).toString());
+        recipe = parseRecipe(fs.readFileSync(file).toString());
     }
     catch (err) {
         error("PARSE ERROR", err);
     }
+    console.log(`\x1b[3mPreparing '${recipe.title}'...\x1b[0m`);
     //* debug
     fs.writeFileSync(path.join(__dirname, "temp/output.json"), JSON.stringify(recipe, null, 2));
     try {
@@ -87,7 +90,7 @@ function followRecipe() {
                             throw "'File reader' utensil was not specified!";
                         }
                         addValue(to, fs
-                            .readFileSync(path.join(__dirname, parseValue(from)))
+                            .readFileSync(path.join(file, "../", parseValue(from)))
                             .toString());
                         break;
                     // Whole value

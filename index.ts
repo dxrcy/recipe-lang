@@ -9,16 +9,18 @@ type recipe = {
   method: string[];
 };
 
+//TODO File path
+const file = path.join(__dirname, "cookbook/index.rcp");
+
 var recipe: recipe;
 function main(): void {
   try {
-    recipe = parseRecipe(
-      fs.readFileSync(path.join(__dirname, "index.rcp")).toString(),
-    );
+    recipe = parseRecipe(fs.readFileSync(file).toString());
   } catch (err) {
     error("PARSE ERROR", err);
   }
 
+  console.log(`\x1b[3mPreparing '${recipe.title}'...\x1b[0m`);
   //* debug
   fs.writeFileSync(
     path.join(__dirname, "temp/output.json"),
@@ -117,7 +119,7 @@ function followRecipe(): void {
             addValue(
               to,
               fs
-                .readFileSync(path.join(__dirname, parseValue(from)))
+                .readFileSync(path.join(file, "../", parseValue(from)))
                 .toString(),
             );
             break;
