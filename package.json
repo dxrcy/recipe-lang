@@ -6,9 +6,21 @@
   "scripts": {
     "start": "nodemon"
   },
+  "nodemonConfig": {
+    "ignore": [
+      "temp/"
+    ],
+    "watch": [
+      "index.rcp",
+      "index.js"
+    ]
+  },
   "author": "darcy",
   "license": "ISC",
   "devDependencies": {
     "nodemon": "^2.0.16"
+  },
+  "dependencies": {
+    "fortissimo": "^0.2.11"
   }
 }

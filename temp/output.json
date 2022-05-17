@@ -1,0 +1,49 @@
+{
+  "title": "Hangman",
+  "utensils": [
+    "fs",
+    "io"
+  ],
+  "ingredients": {
+    "list": null,
+    "word": null,
+    "correct": null,
+    "incorrect": null,
+    "show": null,
+    "flour": null,
+    "sugar": null,
+    "guess": null
+  },
+  "method": [
+    "Preheat",
+    "Add file of 'words.txt' to list",
+    "Separate list by line",
+    "Remake list as flour",
+    "Add any of flour to word",
+    "Empty correct",
+    "Empty incorrect",
+    "Add 'an' to correct",
+    "Empty show",
+    "Remake word as flour",
+    "Empty sugar",
+    "Add first of flour to sugar",
+    "Add sugar to show if sugar is in correct",
+    "Add '_' to show if sugar is not empty and sugar is not in correct",
+    "Repeat from step 10 if size of show is less than size of word",
+    "Shout 'Win!' and wait if show is the same as word",
+    "Don't serve word, ' ' and show",
+    "Empty flour",
+    "Add 6 to flour",
+    "Shout size of incorrect",
+    "Take size of incorrect from flour",
+    "Shout wait, show, wait, 'Chances: ', flour, wait, 'Correct: ', correct, wait, 'Incorrect: ', incorrect, and wait",
+    "Bake until 'Guess: ' is guess",
+    "Skip to step 23 if guess is not in word",
+    "Add guess to correct if guess is not in correct",
+    "Skip to step 24",
+    "Add guess to incorrect if guess is not in incorrect",
+    "Repeat from step 7 until size of incorrect is more than 5",
+    "Shout 'Loss!'",
+    "Repeat from step 4"
+  ]
+}

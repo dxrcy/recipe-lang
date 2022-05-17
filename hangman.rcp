@@ -1,60 +1,51 @@
 Hangman
 
 Utensils
-- 1 file reader
-- 1 input interface
+- 1 File reader
+- 1 Input interface
 
 Ingredients
-- 1 words
-- 1 word
-- 1 correct
-- 1 incorrect
-- 1 show
-- 1 temp
-- 1 char
-- 1 '_' of blank
-- 1 number
-- 1 guess
+- 1 List
+- 1 Word
+- 1 Correct
+- 1 Incorrect
+- 1 Show
+- 1 Flour
+- 1 Sugar
+- 1 Guess
 
 Method
-1. Say 'Hangman!'
-2. Remove words from words.txt
-3. Separate words by line
+1. Preheat.
+2. Add 'an' to correct.
+3. Add file of 'words.txt' to list.
+4. Separate list by line.
 
-4. Remove contents of word
-5. Copy any of words to word
+5. Remake list as flour.
+6. Add any of flour to word.
 
-6. Remove contents of show
-7. Remove contents of temp
-8. Copy word to temp
-9. Remove contents of char
-10. Add first of temp to char
-11. Copy char to show if char is in correct
-12. Copy blank to show if char is not in correct
-13. Repeat from step 9 until temp is empty
+7. Empty show.
+8. Remake word as flour.
+9. Empty sugar.
+10. Add first of flour to sugar.
+11. Add sugar to show if sugar is in correct.
+12. Add '_' to show if sugar is not empty and sugar is not in correct.
+13. Repeat from step 9 if size of show is less than size of word.
 
-14. Say nothing
-15. Say 'Win!' if show is the same as word
-16. Repeat from step 4 if show is the same as word
+14. Shout 'Win!' and wait if show is the same as word.
 
-17. Say show
-18. Say nothing
-19. Say 'Chances: '
-20. Remove content of number
-21. Add 6 to number
-22. Remove size of incorrect of number
-23. Say number
-24. Say nothing
-25. Say 'Correct: '
-26. Say correct
-27. Say nothing
-28. Say 'Incorrect: '
-29. Say incorrect
+15. Empty flour.
+16. Add 6 to flour.
+17. Take size of incorrect from flour.
+18. Shout wait, show, wait, 'Chances: ', flour, wait, 'Correct: ', correct, wait, 'Incorrect: ', incorrect, and wait.
 
-30. Ask 'Guess: ' to guess
-31. Add guess to correct if guess is in word and guess is not in correct
-32. Add guess to incorrect if guess is not in word and guess is not in incorrect
+19. Bake until 'Guess: ' is guess.
 
-14. Say nothing
-15. Say 'Loss!' if size of incorrect is more than 5
-16. Repeat from step 4 if size of incorrect is more than 5
+20. Skip to step 23 if guess is not in word.
+21. Add guess to correct if guess is not in correct.
+22. Skip to step 24.
+23. Add guess to incorrect if guess is not in incorrect.
+
+24. Repeat from step 7 until size of incorrect is more than 5.
+
+25. Shout 'Loss!'.
+26. Repeat from step 5.
