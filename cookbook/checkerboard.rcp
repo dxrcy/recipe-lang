@@ -1,0 +1,28 @@
+Checkerboard
+
+Ingredients
+- 1 X
+- 1 Y
+- 1 Number
+- 1 Flour
+- 1 Sugar
+
+Method
+1. Preheat.
+2. Empty y.
+3. Shout wait if y is more than 0.
+4. Empty x.
+5. Remake x as number.
+6. Remake y as flour.
+7. Add flour to number.
+8. Empty sugar.
+9. Add remainder of number divided by 2 to sugar.
+10. Skip to step 13 if sugar is more than 0.
+11. Shout '  '.
+12. Skip to step 14.
+13. Shout '██'.
+14. Add 1 to x.
+15. Repeat from step 5 if x is less than 10.
+16. Add 1 to y.
+17. Repeat from step 3 if y is less than 10.
+18. Serve wait and 'Enjoy!'.

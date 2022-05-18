@@ -4,7 +4,9 @@ const F = require("fortissimo");
 const readline = require("readline");
 //TODO File path
 const file = path.join(__dirname, "cookbook/index.rcp");
+const DEBUG = false; //* Set to true for non-strict mode
 //TODO Standardize error messages
+//TODO Add more error handling
 var recipe;
 async function main() {
     try {
@@ -13,23 +15,29 @@ async function main() {
     catch (err) {
         error("PARSE ERROR", err);
     }
-    console.log(`\x1b[3mPreparing '${recipe.title}'...\x1b[0m`);
+    console.log(`\x1b[3mPreparing '${recipe.title}'${DEBUG ? " [DEBUG]" : ""}...\x1b[0m`);
     try {
         await followRecipe();
     }
     catch (err) {
         error("RUNTIME ERROR", err);
     }
-    // Check for any unused ingredients, utensils
-    //TODO Check for unused utensils
-    for (var i in recipe.ingredients) {
-        if (recipe.ingredients[i] === undefined) {
-            error("VALIDATION ERROR", `Unused ingredient <${i}>`);
-        }
-    }
-    console.log();
+    serve();
 }
 main();
+// Finish program
+function serve() {
+    // Check for any unused ingredients, utensils
+    //TODO Check for unused utensils
+    if (!DEBUG) {
+        for (var i in recipe.ingredients) {
+            if (recipe.ingredients[i] === undefined) {
+                error("VALIDATION ERROR", `Unused ingredient <${i}>`);
+            }
+        }
+    }
+    process.exit();
+}
 // Handle generic error
 function error(type, msg) {
     console.error(`\n\x1b[31;1m${type}\x1b[0m\n\x1b[31m${msg}\x1b[0m\n`);
@@ -208,9 +216,8 @@ async function followRecipe() {
                     if (isNaN(parseInt(args[2]))) {
                         throw "Step is not a number";
                     }
-                    //? Higher amount
-                    if (repeats >= 1e6) {
-                        throw "Too many repeats! [DEBUG]";
+                    if (repeats >= (DEBUG ? 5e3 : 1e6)) {
+                        throw "Too many repeats!";
                     }
                     var number = parseInt(args[2]);
                     if (typeof number !== "number") {
@@ -271,10 +278,9 @@ async function followRecipe() {
                             // Assume type defined
                             shoutArgs(args);
                         }
-                        console.log("\x1b[0m\n");
+                        console.log("\x1b[0m");
                     }
-                    console.log();
-                    process.exit();
+                    serve();
                 case "take":
                     var take = args[0], rest = 1;
                     //? This might be broken
@@ -529,15 +535,6 @@ function parseValue(string) {
     if (isValidIngredient(string)) {
         return recipe.ingredients[string];
     }
-    //* Debug
-    if (string?.startsWith("^") &&
-        isValidIngredient(string?.toLowerCase()?.slice(1))) {
-        var value = recipe.ingredients[string?.toLowerCase()?.slice(1)];
-        if (typeof value === "string") {
-            return value.toUpperCase();
-        }
-        return value;
-    }
     throw `Unknown type or ingredient <${string}>`;
 }
 // Get size of any value
@@ -608,11 +605,31 @@ function splitAtSpace(string) {
     //TODO parseValue for a if not 'of size'
     var proper = [];
     for (var i = 0; i < array.length; i++) {
-        if (array[i]?.toLowerCase() === "size") {
-            if (array[i + 1]?.toLowerCase() === "of") {
+        if (array[i + 1]?.toLowerCase() === "of") {
+            if (array[i]?.toLowerCase() === "size") {
                 proper.push(getSize(array[i + 2]).toString());
                 i += 2;
                 continue;
+            }
+            else if (array[i]?.toLowerCase() === "remainder") {
+                if (array
+                    .slice(i + 3, i + 5)
+                    .join(" ")
+                    ?.toLowerCase() === "divided by") {
+                    var a = parseValue(array[i + 2]) || 0, b = parseValue(array[i + 5]) || 0;
+                    if (typeof a !== "number" || typeof b !== "number") {
+                        throw "Cannot divide without a number!";
+                    }
+                    proper.push((a % b).toString());
+                    i += 5;
+                    continue;
+                }
+                else {
+                    throw "Cannot get remainder if nothing divided!";
+                }
+            }
+            else {
+                throw "Unknown use of word 'of'";
             }
         }
         proper.push(array[i]);
@@ -657,8 +674,8 @@ function parseRecipe(file) {
     var lines = file.split("\r\n");
     var recipe = {
         title: null,
-        utensils: null,
-        ingredients: null,
+        utensils: [],
+        ingredients: [],
         method: null,
     };
     // Sort file
@@ -712,11 +729,13 @@ function parseRecipe(file) {
                 }
                 stepNumber++;
                 if (number !== stepNumber) {
-                    //! Zero is for debugging
-                    if (number !== 0) {
+                    if (number !== 0 || !DEBUG) {
                         throw `Invalid step number (line ${i + 1})`;
                     }
                     stepNumber--;
+                }
+                if (line.split(".").slice(1).join("").length < 1) {
+                    throw `Empty step (line ${i + 1})`;
                 }
                 var step = removePadding(line.split(".")[0] + " " + line.split(".").slice(1).join("."));
                 //TODO Allow '!' or '?' at end
@@ -765,5 +784,11 @@ function parseRecipe(file) {
         throw `Unknown ingredient format <${item.join(" ")}>`;
     }
     recipe.ingredients = ingredients;
+    if (!recipe.title) {
+        throw "Recipe is not named!";
+    }
+    if (!recipe.method || recipe.method.length < 1) {
+        throw "No method";
+    }
     return recipe;
 }
